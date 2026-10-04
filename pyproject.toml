@@ -1,0 +1,82 @@
+# ---------------------------------------------------------------------------
+# Build backend: the tool pip delegates to when installing this package.
+# Every top-level package under src/ must be listed here, or it won't be
+# installed (hatchling only auto-detects a single package named after the project).
+# ---------------------------------------------------------------------------
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/simple_sample_sorter",
+    "src/domain",
+    "src/viewmodels",
+    "src/views",
+]
+
+
+# ---------------------------------------------------------------------------
+# Project metadata and RUNTIME dependencies (what the shipped app needs).
+# Versions are minimums, not pins; a lock file can add exact pins later.
+# ---------------------------------------------------------------------------
+[project]
+name = "simple-sample-sorter"   # distribution name; the import name is simple_sample_sorter
+version = "0.1.0"
+description = "Sorts audio one-shots into categories with a scikit-learn model."
+license = "GPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = [
+    "PySide6>=6.7",             # Qt GUI
+    "numpy>=1.26",              # arrays; librosa and scikit-learn build on it
+    "librosa>=0.10",            # audio loading + feature extraction
+    "soundfile>=0.12",          # fast WAV/AIFF/FLAC reading used by librosa
+    "scikit-learn>=1.5",        # classifier at inference time
+    "joblib>=1.4",              # loading the saved classifier.joblib
+]
+
+# Optional groups, installed with: pip install -e ".[dev,ml]"
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-qt>=4.4",           # ViewModel tests (signals) without a visible window
+    "ruff>=0.6",                # lint + format
+    "pyright>=1.1.380",         # type checking; same engine as VS Code's Pylance
+]
+ml = [
+    "jupyterlab>=4.0",          # notebooks for feature exploration
+    "matplotlib>=3.8",          # confusion matrices, feature plots
+    "pandas>=2.2",              # tabular view of features/results during training
+]
+
+# Creates a `simple-sample-sorter` command. gui-scripts (vs scripts) avoids opening
+# a console window on Windows.
+[project.gui-scripts]
+simple-sample-sorter = "simple_sample_sorter.__main__:main"
+
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+[tool.ruff]
+src = ["src", "tests", "ml"]
+
+[tool.ruff.lint]
+# E/W: style errors, F: pyflakes (unused imports, undefined names),
+# I: import sorting, B: bugbear (likely bugs), UP: modern syntax for 3.11+,
+# N: PEP 8 naming
+select = ["E", "W", "F", "I", "B", "UP", "N"]
+
+[tool.ruff.lint.pep8-naming]
+# Qt overrides use camelCase (paintEvent, dropEvent), which N802 would flag.
+ignore-names = ["*Event", "rowCount", "roleNames", "headerData", "setData"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+# AGENTS.md asks for type checking on domain/ and services/ at minimum.
+include = ["src/domain"]  # add "src/services" once it exists
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
